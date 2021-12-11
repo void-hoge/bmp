@@ -7,7 +7,21 @@
 #include <iostream>
 #include <cassert>
 
-namespace voidhoge::bmp {
+namespace voidhoge{
+namespace bmp {
+
+class pixel {
+private:
+public:
+	unsigned char r;
+	unsigned char g;
+	unsigned char b;
+	pixel(unsigned char red, unsigned char gleen, unsigned blue): r(red), g(gleen), b(blue) {};
+	pixel():r(0), g(0), b(0){};
+};
+
+typedef std::vector<std::vector<pixel> > grid;
+
 
 class header {
 private:
@@ -82,80 +96,31 @@ public:
 		biclrused = 0;
 		biclrimportant = 0;
 	}
-	void dump() {
-		std::cout << "bftype: " << bftype << '\n';
-		std::cout << "bfsize: " << bfsize << '\n';
-		std::cout << "bfreserved1: " << bfreserved1 << '\n';
-		std::cout << "bfreserved2: " << bfreserved2 << '\n';
-		std::cout << "bfoffbits: " << bfoffbits << '\n';
-		std::cout << "bisize: " << bisize << '\n';
-		std::cout << "biwidth: " << biwidth << '\n';
-		std::cout << "biheight:" << biheight << '\n';
-		std::cout << "biplanes: " << biplanes << '\n';
-		std::cout << "bibitcount: " << bibitcount << '\n';
-		std::cout << "bicompression: " << bicompression << '\n';
-		std::cout << "bisizeimage: " << bisizeimage << '\n';
-		std::cout << "bixpelspermeter: " << bixpelspermeter << '\n';
-		std::cout << "biypelspermeter: " << biypelspermeter << '\n';
-		std::cout << "biclrused: " << biclrused << '\n';
-		std::cout << "biclrimportant: " << biclrimportant << '\n';
+	void dump(std::ostream& ost) {
+		ost << "bftype:          " << bftype << '\n';
+		ost << "bfsize:          " << bfsize << '\n';
+		ost << "bfreserved1:     " << bfreserved1 << '\n';
+		ost << "bfreserved2:     " << bfreserved2 << '\n';
+		ost << "bfoffbits:       " << bfoffbits << '\n';
+		ost << "bisize:          " << bisize << '\n';
+		ost << "biwidth:         " << biwidth << '\n';
+		ost << "biheight:        " << biheight << '\n';
+		ost << "biplanes:        " << biplanes << '\n';
+		ost << "bibitcount:      " << bibitcount << '\n';
+		ost << "bicompression:   " << bicompression << '\n';
+		ost << "bisizeimage:     " << bisizeimage << '\n';
+		ost << "bixpelspermeter: " << bixpelspermeter << '\n';
+		ost << "biypelspermeter: " << biypelspermeter << '\n';
+		ost << "biclrused:       " << biclrused << '\n';
+		ost << "biclrimportant:  " << biclrimportant << '\n';
 	}
 };
-
-class pixel {
-private:
-public:
-	unsigned char r;
-	unsigned char g;
-	unsigned char b;
-	pixel(unsigned char red, unsigned char gleen, unsigned blue): r(red), g(gleen), b(blue) {};
-	pixel():r(0), g(0), b(0){};
-};
-
-using grid = std::vector<std::vector<pixel>>;
 
 class bmp_image {
-protected:
-	std::string filename;
+private:
 	header hd;
-	grid data;
-	void set_conntents() {
-		hd.bftype = 19778;
-		hd.bfreserved1 = 0;
-		hd.bfreserved2 = 0;
-		hd.bfoffbits = 54;
-
-		hd.bisize = 40;
-		hd.biplanes = 1;
-		hd.bibitcount = 24;
-		hd.bicompression = 0;
-		hd.bixpelspermeter = 0;
-		hd.biypelspermeter = 0;
-		hd.biclrused = 0;
-		hd.biclrimportant = 0;
-	}
-
-	void set_size(unsigned int height, unsigned int width) {
-		hd.biheight = height;
-		hd.biwidth = width;
-		hd.bisizeimage = height*width*hd.bibitcount/8;
-		hd.bfsize = hd.bisizeimage + hd.bfoffbits;
-
-		data.resize(hd.biheight);
-		for (int i = 0; i < hd.biheight; i++) {
-			data[i].resize(hd.biwidth);
-		}
-	}
-public:
-	bmp_image(std::string name):filename(name){};
-	void change_name(std::string name) {
-		this->filename = name;
-	}
-	void set_data(grid data) {
-		this->data = data;
-		set_size(data.size(), data[0].size());
-	}
-	void read() {
+	grid _data;
+	void read(const std::string& filename) {
 		std::ifstream ifs(filename, std::ios::in | std::ios::binary);
 		if (!ifs.is_open()) {
 			throw std::runtime_error("cannot open the file.");
@@ -178,24 +143,24 @@ public:
 		ifs.read((char*)&hd.biclrused, sizeof(hd.biclrused));
 		ifs.read((char*)&hd.biclrimportant, sizeof(hd.biclrimportant));
 
-		data.resize(hd.biheight);
+		_data.resize(hd.biheight);
 		for (int i = 0; i < hd.biheight; i++) {
-			data[i].resize(hd.biwidth);
+			_data[i].resize(hd.biwidth);
 		}
 
 		for (int i = 0; i < hd.biheight; i++) {
 			for (int j = 0; j < hd.biwidth; j++) {
-				ifs.read((char*)&data[i][j].b, sizeof(unsigned char));
-				ifs.read((char*)&data[i][j].g, sizeof(unsigned char));
-				ifs.read((char*)&data[i][j].r, sizeof(unsigned char));
+				ifs.read((char*)&_data[i][j].b, sizeof(unsigned char));
+				ifs.read((char*)&_data[i][j].g, sizeof(unsigned char));
+				ifs.read((char*)&_data[i][j].r, sizeof(unsigned char));
 			}
 		}
 		ifs.close();
 	}
-	void write() {
+	void write(const std::string& filename) {
 		std::ofstream ofs(filename, std::ios::out | std::ios::binary);
-		if (this->data.empty()) {
-			throw std::runtime_error("data is empty.");
+		if (this->_data.empty()) {
+			throw std::runtime_error("_data is empty.");
 		}
 		if (!ofs.is_open()) {
 			throw std::runtime_error("cannot open the file.");
@@ -219,21 +184,66 @@ public:
 		ofs.write((char*)&hd.biclrused, sizeof(hd.biclrused));
 		ofs.write((char*)&hd.biclrimportant, sizeof(hd.biclrimportant));
 
-		assert(data.size() == hd.biheight);
-		for (int i = 0; i < data.size(); i++) {
-			assert(data[i].size() == hd.biwidth);
+		assert(_data.size() == hd.biheight);
+		for (int i = 0; i < _data.size(); i++) {
+			assert(_data[i].size() == hd.biwidth);
 		}
 
 		for (int i = 0; i < hd.biheight; i++) {
 			for (int j = 0; j < hd.biwidth; j++) {
-				ofs.write((char*)&data[i][j].b, sizeof(unsigned char));
-				ofs.write((char*)&data[i][j].g, sizeof(unsigned char));
-				ofs.write((char*)&data[i][j].r, sizeof(unsigned char));
+				ofs.write((char*)&_data[i][j].b, sizeof(unsigned char));
+				ofs.write((char*)&_data[i][j].g, sizeof(unsigned char));
+				ofs.write((char*)&_data[i][j].r, sizeof(unsigned char));
 			}
 		}
 	}
+	void set_size(unsigned int height, unsigned int width) {
+		hd.biheight = height;
+		hd.biwidth = width;
+		hd.bisizeimage = height*width*hd.bibitcount/8;
+		hd.bfsize = hd.bisizeimage + hd.bfoffbits;
+
+		_data.resize(hd.biheight);
+		for (int i = 0; i < hd.biheight; i++) {
+			_data[i].resize(hd.biwidth);
+		}
+	}
+	void set_constants() {
+		hd.bftype = 19778;
+		hd.bfreserved1 = 0;
+		hd.bfreserved2 = 0;
+		hd.bfoffbits = 54;
+
+		hd.bisize = 40;
+		hd.biplanes = 1;
+		hd.bibitcount = 24;
+		hd.bicompression = 0;
+		hd.bixpelspermeter = 0;
+		hd.biypelspermeter = 0;
+		hd.biclrused = 0;
+		hd.biclrimportant = 0;
+	}
+public:
+	bmp_image() {}
+	bmp_image(const std::string& filename) {
+		read(filename);
+	}
+	bmp_image(const grid& data) {
+		this->data() = data;
+		set_constants();
+		if (!data.empty()) {
+			set_size(data.size(), data[0].size());
+		}
+	}
+	void save(const std::string& filename) {
+		this->write(filename);
+	}
+	grid& data() {
+		return _data;
+	}
 };
 
+} /* namespace bmp */
 } /* namespace voidhoge */
 
 #endif /* end of include guard: BMP_HPP */
