@@ -6,7 +6,7 @@ voidhoge::bmp::bmp_image::bmp_image(grid& data); // データから読み込む�
 voidhoge::bmp::bmp_image::save(std::string filename); // データをfilenameとして保存
 voidhoge::bmp::bmp_image::data(); // grid dataへの参照
 ```
-gridは二重のvector. 中身はpixel
+gridは二重のvector. vec3
 
 ```
 画素は以下のように表現する
@@ -15,5 +15,5 @@ O-----x
 |.....
 |.....
 y
-grid[y][x]
+grid[x][y]
 ```
