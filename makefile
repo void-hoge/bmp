@@ -1,4 +1,4 @@
-test: test.cpp
+test: test.cpp bmp.hpp
 	g++ test.cpp -o test
 
 clean:

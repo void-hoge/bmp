@@ -10,18 +10,17 @@
 namespace voidhoge{
 namespace bmp {
 
-class pixel {
+class vec3 {
 private:
 public:
-	unsigned char r;
-	unsigned char g;
-	unsigned char b;
-	pixel(unsigned char red, unsigned char gleen, unsigned blue): r(red), g(gleen), b(blue) {};
-	pixel():r(0), g(0), b(0){};
+	unsigned char x; // r
+	unsigned char y; // g
+	unsigned char z; // b
+	vec3(unsigned char x_, unsigned char y_, unsigned char z_): x(x_), y(y_), z(z_) {}
+	vec3():x(0), y(0), z(0){};
 };
 
-typedef std::vector<std::vector<pixel> > grid;
-
+typedef std::vector<std::vector<vec3> > grid;
 
 class header {
 private:
@@ -116,6 +115,15 @@ public:
 	}
 };
 
+//        [0][0] ->  +----------------+  <- [width-1][0]
+//                   ||||||||||||||||||
+//                   |||||||grid|||||||
+//                   ||||||||||||||||||
+// [0][height-1] ->  +----------------+  <- [width-1][height-1]
+//                       ^ ^ ^ ^ ^
+//                       | | | | |
+//                   std::vector<vec3>
+
 class bmp_image {
 private:
 	header hd;
@@ -143,24 +151,24 @@ private:
 		ifs.read((char*)&hd.biclrused, sizeof(hd.biclrused));
 		ifs.read((char*)&hd.biclrimportant, sizeof(hd.biclrimportant));
 
-		_data.resize(hd.biheight);
-		for (int i = 0; i < hd.biheight; i++) {
-			_data[i].resize(hd.biwidth);
+		data().resize(hd.biwidth);
+		for (int i = 0; i < hd.biwidth; i++) {
+			data()[i].resize(hd.biheight);
 		}
 
 		for (int i = 0; i < hd.biheight; i++) {
 			for (int j = 0; j < hd.biwidth; j++) {
-				ifs.read((char*)&_data[i][j].b, sizeof(unsigned char));
-				ifs.read((char*)&_data[i][j].g, sizeof(unsigned char));
-				ifs.read((char*)&_data[i][j].r, sizeof(unsigned char));
+				ifs.read((char*)&data()[j][i].z, sizeof(unsigned char));
+				ifs.read((char*)&data()[j][i].y, sizeof(unsigned char));
+				ifs.read((char*)&data()[j][i].x, sizeof(unsigned char));
 			}
 		}
 		ifs.close();
 	}
 	void write(const std::string& filename) {
 		std::ofstream ofs(filename, std::ios::out | std::ios::binary);
-		if (this->_data.empty()) {
-			throw std::runtime_error("_data is empty.");
+		if (this->data().empty()) {
+			throw std::runtime_error("data() is empty.");
 		}
 		if (!ofs.is_open()) {
 			throw std::runtime_error("cannot open the file.");
@@ -184,16 +192,15 @@ private:
 		ofs.write((char*)&hd.biclrused, sizeof(hd.biclrused));
 		ofs.write((char*)&hd.biclrimportant, sizeof(hd.biclrimportant));
 
-		assert(_data.size() == hd.biheight);
-		for (int i = 0; i < _data.size(); i++) {
-			assert(_data[i].size() == hd.biwidth);
+		assert(data().size() == hd.biwidth);
+		for (int i = 0; i < data().size(); i++) {
+			assert(data()[i].size() == hd.biheight);
 		}
-
 		for (int i = 0; i < hd.biheight; i++) {
 			for (int j = 0; j < hd.biwidth; j++) {
-				ofs.write((char*)&_data[i][j].b, sizeof(unsigned char));
-				ofs.write((char*)&_data[i][j].g, sizeof(unsigned char));
-				ofs.write((char*)&_data[i][j].r, sizeof(unsigned char));
+				ofs.write((char*)&data()[j][i].z, sizeof(unsigned char));
+				ofs.write((char*)&data()[j][i].y, sizeof(unsigned char));
+				ofs.write((char*)&data()[j][i].x, sizeof(unsigned char));
 			}
 		}
 	}
@@ -203,9 +210,9 @@ private:
 		hd.bisizeimage = height*width*hd.bibitcount/8;
 		hd.bfsize = hd.bisizeimage + hd.bfoffbits;
 
-		_data.resize(hd.biheight);
-		for (int i = 0; i < hd.biheight; i++) {
-			_data[i].resize(hd.biwidth);
+		data().resize(hd.biwidth);
+		for (int i = 0; i < hd.biwidth; i++) {
+			data()[i].resize(hd.biheight);
 		}
 	}
 	void set_constants() {
@@ -232,7 +239,7 @@ public:
 		this->data() = data;
 		set_constants();
 		if (!data.empty()) {
-			set_size(data.size(), data[0].size());
+			set_size(this->data()[0].size(), this->data().size());
 		}
 	}
 	void save(const std::string& filename) {
